@@ -55,6 +55,12 @@ compactar, con la decena de horas en la primera posición y la unidad de los seg
 
 /* === Private data type declarations==============================================================================*/
 
+// Estructura con los atributos del objeto
+struct clock_s {
+    clock_time_t curren_time;
+    bool valid;
+};
+
 /* === Private function declarations ===============================================================================*/
 
 /* === Private variable definitions================================================================================*/
@@ -69,7 +75,10 @@ compactar, con la decena de horas en la primera posición y la unidad de los seg
  * @return clock_t puntero al objeto
  */
 clock_t Clock_Create() {
-    return NULL;
+    static struct clock_s clock[1];
+    memset(clock, 0, sizeof(struct clock_s));
+    clock->valid = false;
+    return clock;
 }
 
 /**
@@ -81,15 +90,17 @@ clock_t Clock_Create() {
  * @return false
  */
 bool Clock_Get_Time(clock_t clock, clock_time_t * result) {
-    (void)clock;
-    (void)result; // significa que no quiero usar la variable y la estoy usando
-    return false; // retorna una hora invalida
+    (void)clock; // significa que no quiero usar la variable y la estoy usando
+    memcpy(result, &clock->curren_time, sizeof(clock_time_t));
+    return clock->valid; // retorna una hora invalida
 }
 
-bool Clock_Set_Time(clock_t clock, clock_time_t * newtime) {
-    (void)clock;
-    (void)newtime;
-    return true;
+bool Clock_Set_Time(clock_t clock, clock_time_t * new_time) {
+    clock->valid = true;
+    // memcpy para copiar los bytes del arreglo
+    memcpy(&clock->curren_time, new_time, sizeof(clock_time_t));
+    (void)new_time;
+    return clock->valid;
 }
 /* === Public function implementation ==============================================================================*/
 

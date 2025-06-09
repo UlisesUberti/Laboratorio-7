@@ -29,7 +29,7 @@ SPDX-License-Identifier: MIT
 /*
 - La librería deberá mantener la hora actual, con precisión de segundos, a partir de la llamada
 a una función que se produce una cierta cantidad de veces por segundo.
-• Lalibrería deberá proporcionar una función para ajustar la hora actual.
+• La librería deberá proporcionar una función para ajustar la hora actual.
 • La librería deberá permitir la configuración, una vez al inicio, de la cantidad de veces por
 segundo que se llamará a la función para mantener la hora actualizada.
 • Lalibrería deberá informar que la hora actual es inválida hasta que se llama a la función para
@@ -62,7 +62,7 @@ compactar, con la decena de horas en la primera posición y la unidad de los seg
 
 /* === Private function definitions ================================================================================*/
 
-// Si inicalizo el reloj debe estar en 00:00 pero esta en hora invalida
+// Si inicalizo el reloj pero esta en hora invalida lo pongo en 00:00
 
 void test_set_up_with_invalid_time(void) {
     // time_t es un puntero a una estructura que permite recibir la hora
@@ -78,6 +78,29 @@ void test_set_up_with_invalid_time(void) {
     // Necesito comparar la hora del reloj con la hora esperada
     TEST_ASSERT_EACH_EQUAL_UINT8(0, current_time.bcd, 6);
 }
+
+// Ajusto la hora del reloj a un horario valido y verifico que es valida
+void test_set_up_and_adjust_with_valid_time(void) {
+    // Seteo un nuevo horario
+    clock_time_t new_time = {.time = {
+                                 .seconds = {0, 0},
+                                 .minutes = {0, 0},
+                                 .hours = {0, 0},
+                             }};
+
+    clock_time_t current_time = {0};
+    // Creo el objeto nuevamente
+    clock_t clock = Clock_Create();
+    // Tets True ya que le paso una hora valida entonces significa que set time me devolvio un true
+    TEST_ASSERT_TRUE(Clock_Set_Time(clock, &new_time));
+    // Ahora verifico que el horario es valido con la funcion get_time
+    TEST_ASSERT_TRUE(Clock_Get_Time(clock, &new_time));
+    // Ahora cuando compare new_time y current_time deben ser vectores iguales
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(new_time.bcd, current_time.bcd, 6);
+}
+
+// Despues de n ciclos de reloj la hora avanza un segundo
+
 /* === Public function implementation ==============================================================================*/
 
 /* === End of documentation========================================================================================*/

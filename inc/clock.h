@@ -60,7 +60,7 @@ bool Clock_Get_Time(clock_t clock, clock_time_t * result);
 
 void test_set_up_and_adjust_with_valid_time(void);
 
-bool Clock_Set_Time(clock_t clock, clock_time_t * newtime);
+bool Clock_Set_Time(clock_t clock, clock_time_t * new_time);
 
 /* === End of conditional blocks =================================================================================== */
 
