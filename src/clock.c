@@ -74,7 +74,7 @@ struct clock_s {
  *
  * @return clock_t puntero al objeto
  */
-clock_t Clock_Create() {
+clock_t Clock_Create(uint16_t Ticks_Per_Second) {
     static struct clock_s clock[1];
     memset(clock, 0, sizeof(struct clock_s));
     clock->valid = false;
@@ -99,8 +99,11 @@ bool Clock_Set_Time(clock_t clock, clock_time_t * new_time) {
     clock->valid = true;
     // memcpy para copiar los bytes del arreglo
     memcpy(&clock->curren_time, new_time, sizeof(clock_time_t));
-    (void)new_time;
     return clock->valid;
+}
+
+void Clock_New_Tick(clock_t clock) {
+    clock->curren_time.time.seconds[0] = 1;
 }
 /* === Public function implementation ==============================================================================*/
 

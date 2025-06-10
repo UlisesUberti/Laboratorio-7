@@ -51,17 +51,24 @@ compactar, con la decena de horas en la primera posición y la unidad de los seg
 #include "unity.h"
 #include "clock.h"
 /* === Macros definitions ==========================================================================================*/
-
+// Defino la cantidad de pulsos por segundo
+#define CLOCK_TICKS_PER_SECOND 5
 /* === Private data type declarations==============================================================================*/
 
 /* === Private function declarations ===============================================================================*/
-
+void Simulate_Seconds(clock_t clock, uint8_t seconds);
 /* === Private variable definitions================================================================================*/
 
 /* === Public variable definitions =================================================================================*/
 
 /* === Private function definitions ================================================================================*/
 
+void Simulate_Seconds(clock_t clock, uint8_t seconds) {
+    // Bucle con duracion que depende de la cantida de segundos a pasar
+    for (uint8_t i = 0; i < CLOCK_TICKS_PER_SECOND * seconds; i++) {
+        Clock_New_Tick(clock);
+    }
+}
 // Si inicalizo el reloj pero esta en hora invalida lo pongo en 00:00
 
 void test_set_up_with_invalid_time(void) {
@@ -70,7 +77,7 @@ void test_set_up_with_invalid_time(void) {
         .bcd = {1, 2, 3, 4, 5, 6},
     };
     // Esta prueba testea a traves de una funcion QUE el reloj esta en hora invalida
-    clock_t clock = Clock_Create();
+    clock_t clock = Clock_Create(CLOCK_TICKS_PER_SECOND);
     // Si llamo a la funcion que determina que el si el tiempo es valido espero un false
     // TEST_ASSERT_FALSE(Clock_Time_Valid(clock));
     // Necesito una funcion para obtener la hora del reloj
@@ -90,7 +97,7 @@ void test_set_up_and_adjust_with_valid_time(void) {
 
     clock_time_t current_time = {0};
     // Creo el objeto nuevamente
-    clock_t clock = Clock_Create();
+    clock_t clock = Clock_Create(CLOCK_TICKS_PER_SECOND);
     // Tets True ya que le paso una hora valida entonces significa que set time me devolvio un true
     TEST_ASSERT_TRUE(Clock_Set_Time(clock, &new_time));
     // Ahora verifico que el horario es valido con la funcion get_time
@@ -100,7 +107,24 @@ void test_set_up_and_adjust_with_valid_time(void) {
 }
 
 // Despues de n ciclos de reloj la hora avanza un segundo
-
+void test_clock_avance_one_second(void) {
+    clock_time_t current_time = {0};
+    static const clock_time_t Expect_Value = {.time = {
+                                                  .hours = {0, 0},
+                                                  .minutes = {0, 0},
+                                                  .seconds = {1, 0},
+                                              }};
+    clock_t clock = Clock_Create(CLOCK_TICKS_PER_SECOND);
+    // Seteo en un hora valida
+    Clock_Set_Time(clock, &(clock_time_t){0});
+    // Funcion para simular que paso un segundo
+    Simulate_Seconds(clock, 1);
+    // Pido la hora actual
+    Clock_Get_Time(clock, &current_time);
+    // Comparo la hora actual con la misma hora mas un segundo
+    // E
+    TEST_ASSERT_EQUAL_MEMORY(Expect_Value.bcd, current_time.bcd, sizeof(clock_time_t));
+}
 /* === Public function implementation ==============================================================================*/
 
 /* === End of documentation========================================================================================*/
