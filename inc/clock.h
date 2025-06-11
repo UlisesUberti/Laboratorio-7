@@ -64,6 +64,9 @@ bool Clock_Set_Time(clock_t clock, clock_time_t * new_time);
 
 void Clock_New_Tick(clock_t clock);
 
+bool Clock_Set_Time_Alarm(clock_t clock, clock_time_t * alarm_time);
+
+bool Clock_Alarm_Working(clock_t clock);
 /* === End of conditional blocks =================================================================================== */
 
 #ifdef __cplusplus

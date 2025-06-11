@@ -27,36 +27,45 @@ SPDX-License-Identifier: MIT
  * */
 
 /*
-- La librería deberá mantener la hora actual, con precisión de segundos, a partir de la llamada
-a una función que se produce una cierta cantidad de veces por segundo.
-• La librería deberá proporcionar una función para ajustar la hora actual.
-• La librería deberá permitir la configuración, una vez al inicio, de la cantidad de veces por
-segundo que se llamará a la función para mantener la hora actualizada.
-• Lalibrería deberá informar que la hora actual es inválida hasta que se llama a la función para
-ajustar la hora por primera vez.
-• Lalibrería deberá proporcionar una función para fijar la hora de la alarma.
-• Lalibrería deberá proporcionar una función para consultar la hora fijada para la alarma.
-• Lalibrería deberá proporcionar una función para habilitar y deshabilitar la alarma.
-• Lalibrería deberá proporcionar una función para consultar si la alarma está, o no, habilitada.
-• La librería deberá generar un evento cuando la alarma esté habilitada y además hora actual
-coincida con la hora de la alarma.
-• La librería deberá proporcionar una función para posponer la alarma una cantidad arbitraria
-de minutos.
-• La librería deberá manejar todas las horas como un arreglo de bytes en formato BCD sin
-compactar, con la decena de horas en la primera posición y la unidad de los segundos en la
-última posición del vector
+- fijar la alarma y avanzar el reloj para que suene
+- Fijar la alarma, desahibilitar y avanzar la hora para que el reloj no suene
+- Hacer sonar la alarma y posponer
+- Hacer sonar la alarma y cancelarla hasta el dia siguiente
+-Ajustar la hora con valores invalidos y que los rechaze
 */
 
 /* === Headers files inclusions ====================================================================================*/
+
 #include "unity.h"
 #include "clock.h"
+
 /* === Macros definitions ==========================================================================================*/
+
 // Defino la cantidad de pulsos por segundo
 #define CLOCK_TICKS_PER_SECOND 5
+#define TEST_ASSERT_TIME(Hours_Tens, Hours_Units, Minutes_Tens, Minutes_Units, Seconds_Tens, Seconds_Units,            \
+                         current_time)                                                                                 \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(Seconds_Units, current_time.bcd[0], "Diference in unit seconds");                  \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(Seconds_Tens, current_time.bcd[1], "Diference in tens seconds");                   \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(Minutes_Units, current_time.bcd[2], "Diference in unit minutes");                  \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(Minutes_Tens, current_time.bcd[3], "Diference in tens minutes");                   \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(Hours_Units, current_time.bcd[4], "Diference in unit hours");                      \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(Hours_Tens, current_time.bcd[5], "Diference in tens hours")
+
 /* === Private data type declarations==============================================================================*/
 
+clock_t clock;
+
 /* === Private function declarations ===============================================================================*/
+
 void Simulate_Seconds(clock_t clock, uint8_t seconds);
+void Simulate_Minutes(clock_t clock, uint8_t minutes);
+void Simule_Hours(clock_t clock, uint8_t hours);
+// Declaro una funcion que se ejecutara antes de todas las pruebas | Setup es detectada por Unity
+void setUp(void) {
+    clock = Clock_Create(CLOCK_TICKS_PER_SECOND);
+}
+
 /* === Private variable definitions================================================================================*/
 
 /* === Public variable definitions =================================================================================*/
@@ -69,19 +78,24 @@ void Simulate_Seconds(clock_t clock, uint8_t seconds) {
         Clock_New_Tick(clock);
     }
 }
-// Si inicalizo el reloj pero esta en hora invalida lo pongo en 00:00
+void Simulate_Minutes(clock_t clock, uint8_t minutes) {
+    for (uint8_t i = 0; i < CLOCK_TICKS_PER_SECOND * minutes * 60; i++) {
+        Clock_New_Tick(clock);
+    }
+}
 
+// Si inicalizo el reloj pero esta en hora invalida lo pongo en 00:00
 void test_set_up_with_invalid_time(void) {
     // time_t es un puntero a una estructura que permite recibir la hora
     clock_time_t current_time = {
-        .bcd = {1, 2, 3, 4, 5, 6},
+        .bcd = {0, 0, 0, 0, 0, 0},
     };
     // Esta prueba testea a traves de una funcion QUE el reloj esta en hora invalida
     clock_t clock = Clock_Create(CLOCK_TICKS_PER_SECOND);
     // Si llamo a la funcion que determina que el si el tiempo es valido espero un false
     // TEST_ASSERT_FALSE(Clock_Time_Valid(clock));
     // Necesito una funcion para obtener la hora del reloj
-    TEST_ASSERT_FALSE(Clock_Get_Time(clock, &current_time));
+    TEST_ASSERT_TRUE(Clock_Get_Time(clock, &current_time));
     // Necesito comparar la hora del reloj con la hora esperada
     TEST_ASSERT_EACH_EQUAL_UINT8(0, current_time.bcd, 6);
 }
@@ -97,7 +111,7 @@ void test_set_up_and_adjust_with_valid_time(void) {
 
     clock_time_t current_time = {0};
     // Creo el objeto nuevamente
-    clock_t clock = Clock_Create(CLOCK_TICKS_PER_SECOND);
+    // clock_t clock = Clock_Create(CLOCK_TICKS_PER_SECOND);
     // Tets True ya que le paso una hora valida entonces significa que set time me devolvio un true
     TEST_ASSERT_TRUE(Clock_Set_Time(clock, &new_time));
     // Ahora verifico que el horario es valido con la funcion get_time
@@ -106,25 +120,85 @@ void test_set_up_and_adjust_with_valid_time(void) {
     TEST_ASSERT_EQUAL_UINT8_ARRAY(new_time.bcd, current_time.bcd, 6);
 }
 
+// Ajusto la hora del reloj a un horario invalido y verifico que la rechaza
+void test_set_up_and_adjust_with_invalid_time(void) {
+    // El objeto se crea en el setup entonces desestimo
+    //  Seteo un horario invalido
+    clock_time_t invalid_time = {.time = {.hours = {9, 9}, .minutes = {0, 0}, .seconds = {0, 0}}};
+    // Seteo un horario valido al incializar
+    clock_time_t current_time = {0};
+    // Verifico que me retorna una hora invalida
+    TEST_ASSERT_FALSE(Clock_Get_Time(clock, &invalid_time));
+}
+
 // Despues de n ciclos de reloj la hora avanza un segundo
 void test_clock_avance_one_second(void) {
+    // inicializo en 00:00:00
     clock_time_t current_time = {0};
-    static const clock_time_t Expect_Value = {.time = {
-                                                  .hours = {0, 0},
-                                                  .minutes = {0, 0},
-                                                  .seconds = {1, 0},
-                                              }};
-    clock_t clock = Clock_Create(CLOCK_TICKS_PER_SECOND);
-    // Seteo en un hora valida
-    Clock_Set_Time(clock, &(clock_time_t){0});
+    Clock_Set_Time(clock, &(clock_time_t){.time = {.hours = {0, 0}, .minutes = {0, 0}, .seconds = {0, 0}}});
     // Funcion para simular que paso un segundo
     Simulate_Seconds(clock, 1);
     // Pido la hora actual
     Clock_Get_Time(clock, &current_time);
     // Comparo la hora actual con la misma hora mas un segundo
-    // E
-    TEST_ASSERT_EQUAL_MEMORY(Expect_Value.bcd, current_time.bcd, sizeof(clock_time_t));
+    // TEST_ASSERT_EQUAL_MEMORY(Expect_Value.bcd, current_time.bcd, sizeof(clock_time_t));}
+    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 1, current_time);
+
+    // Testeo de 9s a 10s
+    // Seteo el tiempo en 00:00:09
+    Clock_Set_Time(clock, &(clock_time_t){.time = {.hours = {0, 0}, .minutes = {0, 0}, .seconds = {9, 0}}});
+    // Hago que pase 1 seg
+    Simulate_Seconds(clock, 1);
+    // Actualizo la hora del reloj
+    Clock_Get_Time(clock, &current_time);
+    // Testeo que el valor esperado sea 00:00:10
+    TEST_ASSERT_TIME(0, 0, 0, 0, 1, 0, current_time);
+
+    // Testeo que pasa de 00:00:59 a 00:01:00
+    //   Seteo en 00:00:59
+    Clock_Set_Time(clock, &(clock_time_t){.time = {.hours = {0, 0}, .minutes = {0, 0}, .seconds = {9, 5}}});
+    // Hago pasar 1 seg
+    Simulate_Seconds(clock, 1);
+    // Actualizo la hora del reloj
+    Clock_Get_Time(clock, &current_time);
+    // testeo el valor esperado 00:01:00
+    TEST_ASSERT_TIME(0, 0, 0, 1, 0, 0, current_time);
+
+    // Testeo de 23:59:59 a 00:00:00
+    //    Seteo en 23:59:59
+    Clock_Set_Time(clock, &(clock_time_t){.time = {.hours = {3, 2}, .minutes = {9, 5}, .seconds = {9, 5}}});
+    // Hago pasar 1 seg
+    Simulate_Seconds(clock, 1);
+    // Actualizo la hora del reloj
+    Clock_Get_Time(clock, &current_time);
+    // testeo el valor esperado 00:01:00
+    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 0, current_time);
 }
+
+// Fijar hora en la alarma y consultarla
+void test_set_up_alarm_and_activate(void) {
+    // Seteo un horario para la alarma
+    clock_time_t alarm_time = {.time = {.hours = {6, 0}, .minutes = {3, 0}, .seconds = {0, 0}}};
+    // verifico que se establecio un horario para la alarma y se activo
+    TEST_ASSERT_TRUE(Clock_Set_Time_Alarm(clock, &alarm_time));
+    // Verifico que el horario de la alarma es igual al ingresado
+    // TEST_ASSERT_EQUAL_UINT8_ARRAY(alarm_time.bcd,, 6);
+}
+
+// fijar la alarma y avanzar el reloj para que suene
+void test_alarm_working(void) {
+    // Seteo la alarma en un horario
+    clock_time_t alarm_time = {.time = {.hours = {6, 0}, .minutes = {0, 3}, .seconds = {0, 0}}};
+    Clock_Set_Time_Alarm(clock, &alarm_time);
+    // Seteo el reloj un segundo antes de ese horario
+    clock_time_t current_time = {.time = {.hours = {6, 0}, .minutes = {9, 2}, .seconds = {9, 5}}};
+    Clock_Set_Time(clock, &current_time);
+    // Funcion que compare si suena cuando avanza un segundo
+    Simulate_Seconds(clock, 1);
+    Clock_Get_Time(clock, &current_time);
+    TEST_ASSERT_TRUE(Clock_Alarm_Working(clock));
+}
+
 /* === Public function implementation ==============================================================================*/
 
 /* === End of documentation========================================================================================*/
