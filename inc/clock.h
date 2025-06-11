@@ -113,10 +113,11 @@ bool Clock_Alarm_Working(clock_t clock, clock_time_t * alarm);
  * @brief Funcion para apagar la alarma
  *
  * @param clock objeto reloj
+ * @param Encendida true si la alarma se activa y false si se desactiva
  * @return true
  * @return false
  */
-bool Clock_Set_Alarm_Off(clock_t clock);
+bool Clock_Set_Alarm(clock_t clock, bool Encendida);
 
 /**
  * @brief Funcion para setear el delay al posponer la alarma
@@ -126,6 +127,14 @@ bool Clock_Set_Alarm_Off(clock_t clock);
  * @return clock_time_t
  */
 clock_time_t Clock_Set_Alarm_Delay(clock_t clock, uint8_t delay_time);
+
+/**
+ * @brief Funcion para obtener la hora de la alarma
+ *
+ * @param clock objeto reloj
+ * @return clock_time_t
+ */
+clock_time_t Clock_Alarm(clock_t clock);
 
 /* === End of conditional blocks =================================================================================== */
 

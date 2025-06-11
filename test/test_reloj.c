@@ -221,12 +221,13 @@ void test_clock_avance_one_hour(void) {
     // Comparo la hora actual con la misma hora mas un segundo
     TEST_ASSERT_TIME(0, 0, 0, 0, 0, 0, current_time);
 }
+
 // Fijar hora en la alarma y consultarla
 void test_set_up_alarm_and_activate(void) {
     // Seteo un horario para la alarma
     clock_time_t alarm_time = {.time = {.hours = {6, 0}, .minutes = {3, 0}, .seconds = {0, 0}}};
     // verifico que se establecio un horario para la alarma y se activo
-    TEST_ASSERT_TRUE(Clock_Set_Time_Alarm(clock, &alarm_time));
+    TEST_ASSERT_TRUE_MESSAGE(Clock_Set_Time_Alarm(clock, &alarm_time), "El horario de la alarma fue seteado");
     // Verifico que el horario de la alarma es igual al ingresado
 }
 
@@ -235,6 +236,7 @@ void test_alarm_working(void) {
     // Seteo la alarma en un horario
     clock_time_t alarm_time = {.time = {.hours = {6, 0}, .minutes = {0, 3}, .seconds = {0, 0}}};
     Clock_Set_Time_Alarm(clock, &alarm_time);
+    Clock_Set_Alarm(clock, true);
     // Seteo el reloj un segundo antes de ese horario
     clock_time_t current_time = {.time = {.hours = {6, 0}, .minutes = {9, 2}, .seconds = {9, 5}}};
     Clock_Set_Time(clock, &current_time);
@@ -242,6 +244,8 @@ void test_alarm_working(void) {
     Simulate_Seconds(clock, 1);
     Clock_Get_Time(clock, &current_time);
     TEST_ASSERT_TRUE(Clock_Alarm_Working(clock, &alarm_time));
+    clock_time_t alarm_time_consult = Clock_Alarm(clock);
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(alarm_time.bcd, alarm_time_consult.bcd, sizeof(clock_time_t));
 }
 
 // Fijar la alarma, desahibilitar y avanzar la hora para que el reloj no suene
@@ -249,11 +253,12 @@ void test_disactivate_alarm(void) {
     // Seteo la alarma en un horario
     clock_time_t alarm_time = {.time = {.hours = {6, 0}, .minutes = {0, 3}, .seconds = {0, 0}}};
     Clock_Set_Time_Alarm(clock, &alarm_time);
+    Clock_Set_Alarm(clock, true);
     // Seteo el reloj un segundo antes de ese horario
     clock_time_t current_time = {.time = {.hours = {6, 0}, .minutes = {9, 2}, .seconds = {9, 5}}};
     Clock_Set_Time(clock, &current_time);
     // Apago la alarma
-    Clock_Set_Alarm_Off(clock);
+    Clock_Set_Alarm(clock, false);
     // Avanzo un segundo y compruebo que no suene
     Simulate_Seconds(clock, 1);
     Clock_Get_Time(clock, &current_time);
@@ -264,6 +269,7 @@ void test_disactivate_alarm(void) {
 void test_alarm_delay(void) {
     clock_time_t alarm_time = {.time = {.hours = {6, 0}, .minutes = {0, 3}, .seconds = {0, 0}}};
     Clock_Set_Time_Alarm(clock, &alarm_time);
+    Clock_Set_Alarm(clock, true);
     // Seteo el reloj un segundo antes de ese horario
     clock_time_t current_time = {.time = {.hours = {6, 0}, .minutes = {9, 2}, .seconds = {9, 5}}};
     Clock_Set_Time(clock, &current_time);
@@ -280,7 +286,7 @@ void test_alarm_delay(void) {
 
     // Compruebo que la alarma vuelve a sonar
     TEST_ASSERT_TRUE(Clock_Alarm_Working(clock, &alarm_time));
-    Clock_Set_Alarm_Off(clock);
+    Clock_Set_Alarm(clock, false);
 }
 
 //- Hacer sonar la alarma y cancelarla hasta el dia siguiente
@@ -288,6 +294,7 @@ void test_alarm_24_hours(void) {
     // Seteo la alarma en un horario
     clock_time_t alarm_time = {.time = {.hours = {6, 0}, .minutes = {0, 3}, .seconds = {0, 0}}};
     Clock_Set_Time_Alarm(clock, &alarm_time);
+    Clock_Set_Alarm(clock, true);
     // Seteo el reloj un segundo antes de ese horario
     clock_time_t current_time = {.time = {.hours = {6, 0}, .minutes = {9, 2}, .seconds = {9, 5}}};
     Clock_Set_Time(clock, &current_time);

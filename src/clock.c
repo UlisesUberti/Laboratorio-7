@@ -158,12 +158,18 @@ void Clock_New_Tick(clock_t clock) {
 }
 
 bool Clock_Set_Time_Alarm(clock_t clock, clock_time_t * alarm_time) {
+    bool result = false;
+    uint8_t minutes = alarm_time->time.minutes[1] * 10 + alarm_time->time.minutes[0];
+    uint8_t seconds = alarm_time->time.seconds[1] * 10 + alarm_time->time.seconds[0];
+    uint8_t hours = alarm_time->time.hours[1] * 10 + alarm_time->time.hours[0];
     // Copio el horario de la alarma como atributo del reloj
-    memcpy(&clock->alarm, alarm_time, sizeof(clock_time_t));
-    // Indico que se activo
-    clock->Alarm_Active = true;
-    // Retorno el estado de la alarma
-    return clock->Alarm_Active;
+    if (hours < 24 && minutes < 60 && seconds < 60) {
+        memcpy(&clock->alarm, alarm_time, sizeof(clock_time_t));
+        result = true;
+    }
+
+    // Retorno el estado de la hora de la alarma
+    return result;
 }
 
 bool Clock_Alarm_Working(clock_t clock, clock_time_t * alarm) {
@@ -187,9 +193,14 @@ bool Clock_Alarm_Working(clock_t clock, clock_time_t * alarm) {
     return result;
 }
 
-bool Clock_Set_Alarm_Off(clock_t clock) {
-    clock->Alarm_Active = false;
-    clock->Delay_Active = false;
+bool Clock_Set_Alarm(clock_t clock, bool Encendida) {
+    if (Encendida) {
+        clock->Alarm_Active = true;
+    } else {
+        clock->Alarm_Active = false;
+        clock->Delay_Active = false;
+    }
+    return clock->Alarm_Active;
 }
 
 clock_time_t Clock_Set_Alarm_Delay(clock_t clock, uint8_t delay_time) {
@@ -214,6 +225,14 @@ clock_time_t Clock_Set_Alarm_Delay(clock_t clock, uint8_t delay_time) {
     clock->Delay_Active = true;
 
     return clock->time_alarm_with_delay;
+}
+
+clock_time_t Clock_Alarm(clock_t clock) {
+    clock_time_t alarm_time = {0};
+    if (clock->Alarm_Active) {
+        memcpy(alarm_time.bcd, &clock->alarm.bcd, sizeof(clock_time_t));
+    }
+    return alarm_time;
 }
 
 /* === Public function implementation ==============================================================================*/
