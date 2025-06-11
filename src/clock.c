@@ -57,11 +57,14 @@ compactar, con la decena de horas en la primera posición y la unidad de los seg
 
 // Estructura con los atributos del objeto
 struct clock_s {
-    clock_time_t alarm;
-    bool Active_Alarm;
-    uint16_t Clock_Ticks;
-    clock_time_t curren_time;
-    bool valid;
+    clock_time_t alarm;                 // Alarma seteada
+    bool Alarm_Active;                  // estado de la alarma
+    uint8_t delay;                      // delay al posponer alarma
+    clock_time_t time_alarm_with_delay; // Alarma pospouesta
+    bool Delay_Active;                  // Estado de la accion de posponer
+    uint16_t Clock_Ticks;               // Cantidad de pulsos por segundo
+    clock_time_t curren_time;           // Hora actual del reloj
+    bool valid;                         // Hora valida del reloj
 };
 
 /* === Private function declarations ===============================================================================*/
@@ -72,50 +75,39 @@ struct clock_s {
 
 /* === Private function definitions ================================================================================*/
 
-/**
- * @brief Funcion que crea el objeto Reloj
- *
- * @return clock_t puntero al objeto
- */
 clock_t Clock_Create(uint16_t Ticks_Per_Second) {
     static struct clock_s clock[1];
     memset(clock, 0, sizeof(struct clock_s));
-    clock->valid = false;
-    clock->Active_Alarm = false;
+    clock->valid = false;        // Inicia en hora invalida
+    clock->Alarm_Active = false; // Inicia con alarma desactivada
+    clock->Delay_Active = false; // Inicia con delay desactivado
     return clock;
 }
 
-/**
- * @brief Funcion que retorna si la hora es invalida o valida
- *
- * @param clock
- * @param result
- * @return true
- * @return false
- */
-bool Clock_Get_Time(clock_t clock, clock_time_t * result) {
-    (void)clock; // significa que no quiero usar la variable y la estoy usando
-    if (result->time.hours[0] < 9 && result->time.hours[1] < 2 && result->time.minutes[0] < 9 &&
-        result->time.minutes[1] < 6 && result->time.seconds[0] < 9 && result->time.seconds[1] < 6) {
-        memcpy(result, &clock->curren_time, sizeof(clock_time_t));
-        clock->valid = true;
-    } else if (result->time.hours[0] < 3 && result->time.hours[1] < 3 && result->time.minutes[0] < 9 &&
-               result->time.minutes[1] < 6 && result->time.seconds[0] < 9 && result->time.seconds[1] < 6) {
-        memcpy(result, &clock->curren_time, sizeof(clock_time_t));
+bool Clock_Set_Time(clock_t clock, clock_time_t * result) {
+    // Reescribo los minutos,segundos y horas como numeros enteros
+    uint8_t minutes = result->time.minutes[1] * 10 + result->time.minutes[0];
+    uint8_t seconds = result->time.seconds[1] * 10 + result->time.seconds[0];
+    uint8_t hours = result->time.hours[1] * 10 + result->time.hours[0];
+    // Condicional para no ingresar un horario invalido
+    if (hours < 24 && minutes < 60 && seconds < 60) {
+        memcpy(&clock->curren_time, result, sizeof(clock_time_t));
         clock->valid = true;
     } else {
         // Si la hora es invalida seteo en 00:00:00
         clock_time_t current_time = {0};
+        clock->curren_time = current_time;
         clock->valid = false;
     }
-
-    return clock->valid; // retorna una hora invalida si no entro en los condicionales
+    // retorna una hora invalida o valida
+    return clock->valid;
 }
 
-bool Clock_Set_Time(clock_t clock, clock_time_t * new_time) {
-    clock->valid = true;
-    // memcpy para copiar los bytes del arreglo con la hora
-    memcpy(&clock->curren_time, new_time, sizeof(clock_time_t));
+bool Clock_Get_Time(clock_t clock, clock_time_t * new_time) {
+    //  memcpy para copiar los bytes del arreglo con la hora
+    if (clock->valid) {
+        memcpy(new_time, &clock->curren_time, sizeof(clock_time_t));
+    }
     return clock->valid;
 }
 
@@ -155,8 +147,8 @@ void Clock_New_Tick(clock_t clock) {
                     clock->curren_time.time.hours[1]++;
                 }
                 // si la hora se encuentra en 23 entonces
-                if (clock->curren_time.time.hours[1] > 2 && clock->curren_time.time.hours[0] > 3 ||
-                    clock->curren_time.time.hours[0] > 2) {
+                if ((clock->curren_time.time.hours[1] > 2) ||
+                    (clock->curren_time.time.hours[0] > 3 && clock->curren_time.time.hours[1] == 2)) {
                     clock->curren_time.time.hours[0] = 0;
                     clock->curren_time.time.hours[1] = 0;
                 }
@@ -166,20 +158,64 @@ void Clock_New_Tick(clock_t clock) {
 }
 
 bool Clock_Set_Time_Alarm(clock_t clock, clock_time_t * alarm_time) {
+    // Copio el horario de la alarma como atributo del reloj
     memcpy(&clock->alarm, alarm_time, sizeof(clock_time_t));
-    clock->Active_Alarm = true;
-    return clock->Active_Alarm;
+    // Indico que se activo
+    clock->Alarm_Active = true;
+    // Retorno el estado de la alarma
+    return clock->Alarm_Active;
 }
 
-bool Clock_Alarm_Working(clock_t clock) {
+bool Clock_Alarm_Working(clock_t clock, clock_time_t * alarm) {
+    // Incializo que la alarma no suene
     bool result = false;
-    if (memcmp(clock->alarm.bcd, clock->curren_time.bcd, sizeof(clock->alarm.bcd)) == 0 && clock->Active_Alarm) {
-        result = true;
+    // Defino una variable del horario esperado de la alarma
+    clock_time_t * expect_alarm = &clock->alarm;
+    // Si se activo el delay el horario de la alarma cambia
+    if (clock->Delay_Active) {
+        expect_alarm = &clock->time_alarm_with_delay;
     }
+    // Si la alarma esta activada y coiciden la hora del reloj con la hora esperada de la alarma entonces:
+    if (memcmp(expect_alarm->bcd, clock->curren_time.bcd, sizeof(clock->alarm.bcd)) == 0 && clock->Alarm_Active) {
+        result = true;
+        // Desactivo el delay por que volvio a sonar
+        clock->Delay_Active = false;
+        // Regreso la alarma a su valor inicial para que vuelva a sonar a la misma hora al dia siguiente
+        memcpy(&clock->time_alarm_with_delay, &clock->alarm, sizeof(clock_time_t));
+    }
+    // Retorno si la alarma sono o no
     return result;
 }
-/* === Public function implementation
- * ==============================================================================*/
 
-/* === End of
- * documentation========================================================================================*/
+bool Clock_Set_Alarm_Off(clock_t clock) {
+    clock->Alarm_Active = false;
+    clock->Delay_Active = false;
+}
+
+clock_time_t Clock_Set_Alarm_Delay(clock_t clock, uint8_t delay_time) {
+    // delay_time deben ser minutos
+    clock->delay = delay_time;
+    // Si es el primer delay
+    if (clock->Delay_Active == false) {
+        memcpy(&clock->time_alarm_with_delay, &clock->alarm, sizeof(clock_time_t));
+    }
+    uint8_t Units_Minutes = clock->time_alarm_with_delay.time.minutes[0];
+    uint8_t Tens_Minutes = clock->time_alarm_with_delay.time.minutes[1];
+    // Escribo los minutos totales
+    uint8_t Total_Minutes = Units_Minutes + Tens_Minutes * 10 + delay_time;
+    // Operador % permite obtener los minutos, si se pasa de 60 tambien obtiene correctamente
+    uint8_t New_Minutes = Total_Minutes % 60;
+    // Si se pasa de 60 habra una hora de diferencia o mas
+    uint8_t Pass_Hours = Total_Minutes / 60;
+
+    clock->time_alarm_with_delay.time.minutes[0] = New_Minutes % 10;
+    clock->time_alarm_with_delay.time.minutes[1] = New_Minutes / 10;
+
+    clock->Delay_Active = true;
+
+    return clock->time_alarm_with_delay;
+}
+
+/* === Public function implementation ==============================================================================*/
+
+/* === End of documentation========================================================================================*/

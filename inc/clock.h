@@ -54,19 +54,79 @@ typedef struct clock_s * clock_t;
 
 /* === Public function declarations ================================================================================ */
 
+/**
+ * @brief Funcion para crear el objeto reloj
+ *
+ * @param Ticks_Per_Second Cantidad de pulsos por segundo
+ * @return clock_t puntero a la estructura creada
+ */
 clock_t Clock_Create(uint16_t Ticks_Per_Second);
 
+/**
+ * @brief Funcion para actulizar el estado de la hora del reloj
+ *
+ * @param clock objeto reloj
+ * @param result esctructura con hora,minutos,segundos
+ * @return true si es valida la hora
+ * @return false si es invalida la hora
+ */
 bool Clock_Get_Time(clock_t clock, clock_time_t * result);
 
-void test_set_up_and_adjust_with_valid_time(void);
-
+/**
+ * @brief Funcion para cargar la hora del reloj
+ *
+ * @param clock objeto reloj
+ * @param new_time estructura con hora,minutos,segundos
+ * @return true si es valida la hora ingresada
+ * @return false si es valida la hora ingresada
+ */
 bool Clock_Set_Time(clock_t clock, clock_time_t * new_time);
 
+/**
+ * @brief Funcion para contar un pulso
+ *
+ * @param clock objeto reloj
+ */
 void Clock_New_Tick(clock_t clock);
 
+/**
+ * @brief Funcion para setaer el horario de la alarma
+ *
+ * @param clock objeto reloj
+ * @param alarm_time estructura con el horario de la alarma
+ * @return true si se pudo setear la alarma
+ * @return false si no se pudo setear la alarma
+ */
 bool Clock_Set_Time_Alarm(clock_t clock, clock_time_t * alarm_time);
 
-bool Clock_Alarm_Working(clock_t clock);
+/**
+ * @brief Funcion para hacer sonar la alarma
+ *
+ * @param clock objeto reloj
+ * @param alarm horario de la alarma seteada
+ * @return true si la alarma sono
+ * @return false si la alarma no sono
+ */
+bool Clock_Alarm_Working(clock_t clock, clock_time_t * alarm);
+
+/**
+ * @brief Funcion para apagar la alarma
+ *
+ * @param clock objeto reloj
+ * @return true
+ * @return false
+ */
+bool Clock_Set_Alarm_Off(clock_t clock);
+
+/**
+ * @brief Funcion para setear el delay al posponer la alarma
+ *
+ * @param clock objeto alarma
+ * @param delay_time minutos de delay
+ * @return clock_time_t
+ */
+clock_time_t Clock_Set_Alarm_Delay(clock_t clock, uint8_t delay_time);
+
 /* === End of conditional blocks =================================================================================== */
 
 #ifdef __cplusplus
